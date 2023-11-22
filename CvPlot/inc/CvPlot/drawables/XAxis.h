@@ -18,6 +18,7 @@ public:
     void render(RenderTarget &renderTarget)override;
     bool getBoundingRect(cv::Rect2d &rect)override;
     const std::vector<double> &getTicks();
+    void setEnabled(bool enable);
 private:
     class Impl;
     CVPLOT_NO_WARNING_DLL_INTERFACE(Internal::Pimpl<Impl>, impl);

@@ -17,6 +17,7 @@ public:
     cv::Scalar _color = cv::Scalar(0, 0, 0);
     std::vector<double> _ticks;
     bool _isLogarithmic;
+    bool _enable = true;
 
     int estimateLabelWidth(double x, double step) {
         std::string label;
@@ -44,10 +45,12 @@ public:
         }
         double epsilon = 1e-5;
         _isLogarithmic = std::abs(2 * (x05 - x0) / (x1 - x0) - 1) > epsilon;
+        //TODO: label text should fit the ticks instead of ticks fit the label text
         double step0 = (x1 - x0) / 10;
         int estimatedLabelWidth = std::max(estimateLabelWidth(x0, step0), estimateLabelWidth(x1,step0));
-        int spacing = 30;
+        int spacing = 20;
         int estimatedTickCount = (int)std::ceil(innerRect.width / (estimatedLabelWidth + spacing));
+        //int estimatedTickCount = (int)std::ceil(innerRect.width / 30.f);
         if (_isLogarithmic) {
             _ticks = Internal::calcTicksLog(x0, x1, estimatedTickCount);
         } else {
@@ -59,6 +62,9 @@ public:
         return cv::getTextSize(text, _fontFace, _fontScale, _fontThickness, &baseline).width;
     }
     void render(RenderTarget & renderTarget) {
+        if (!_enable) {
+            return;
+        }
         cv::Mat3b &outerMat = renderTarget.outerMat();
         const cv::Rect &innerRect = renderTarget.innerRect();
         if (!innerRect.area()) {
@@ -99,6 +105,11 @@ XAxis::XAxis(){
 CVPLOT_DEFINE_FUN
 void XAxis::render(RenderTarget & renderTarget){
     impl->render(renderTarget);
+}
+
+CVPLOT_DEFINE_FUN
+void XAxis::setEnabled(bool enable) {
+    impl->_enable = enable;
 }
 
 CVPLOT_DEFINE_FUN

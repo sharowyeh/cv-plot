@@ -20,6 +20,7 @@ public:
     const std::vector<double> &getTicks()const;
     int getWidth()const;
     YAxis& setLocateRight(bool locateRight = true);
+    void setEnabled(bool enable);
 private:
     class Impl;
     CVPLOT_NO_WARNING_DLL_INTERFACE(Internal::Pimpl<Impl>, impl);

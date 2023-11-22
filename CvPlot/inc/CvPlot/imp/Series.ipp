@@ -148,9 +148,10 @@ public:
         }
         const cv::Scalar color = _parent.getColor();
         const int lineWidth = _parent.getLineWidth();
-        if (_markerType == MarkerType::None && lineWidth == 0) {
+        //DEBUG: allows for plane type
+        /*if (_markerType == MarkerType::None && lineWidth == 0) {
             return;
-        }
+        }*/
         cv::Mat3b& mat = renderTarget.innerMat();
         const int shift = 3;
         const int shiftScale = (1 << shift);
@@ -244,18 +245,22 @@ Series::~Series() {
 }
 
 CVPLOT_DEFINE_FUN
-Series::Series(const std::string & lineSpec)
-    : Series(cv::Mat(), lineSpec) {
+Series::Series(const std::string & lineSpec, const std::string name)
+    : Series(cv::Mat(), lineSpec, name) {
 }
 
+//DEBUG: i want named drawable item 
 CVPLOT_DEFINE_FUN
-Series::Series(cv::InputArray data, const std::string &lineSpec)
+Series::Series(cv::InputArray data, const std::string& lineSpec, const std::string name)
     : LineBaseSub(lineSpec)
     , impl(*this) {
+    LineBaseSub::setName(name);
     cv::Mat d = data.getMat();
-    if (impl->xyValid(data)){
+    impl->_rawData.push_back(d);
+    if (impl->xyValid(data)) {
         setY(data);
-    }else if(impl->pointsValid(data)){
+    }
+    else if (impl->pointsValid(data)) {
         setPoints(data);
     }
     //EXPR: try to identify given plane mat data and corresponding type
@@ -269,9 +274,12 @@ Series::Series(cv::InputArray data, const std::string &lineSpec)
 }
 
 CVPLOT_DEFINE_FUN
-Series::Series(cv::InputArray x, cv::InputArray y, const std::string &lineSpec)
+Series::Series(cv::InputArray x, cv::InputArray y, const std::string &lineSpec, const std::string name)
     :LineBaseSub(lineSpec)
     ,impl(*this){
+    LineBaseSub::setName(name);
+    impl->_rawData.push_back(x.getMat());
+    impl->_rawData.push_back(y.getMat());
     if (!impl->xyValid(x)) {
         throw std::invalid_argument("invalid x in Series constructor. See Series.h for supported types");
     }
@@ -281,6 +289,17 @@ Series::Series(cv::InputArray x, cv::InputArray y, const std::string &lineSpec)
     setX(x);
     setY(y);
     setLineSpec(lineSpec);
+}
+
+CVPLOT_DEFINE_FUN
+void Series::setName(std::string name) {
+    // will go to drawablesub<linebase> -> drawable::setname
+    LineBaseSub::setName(name);
+}
+
+CVPLOT_DEFINE_FUN
+std::string Series::getName() {
+    return LineBaseSub::getName();
 }
 
 CVPLOT_DEFINE_FUN
@@ -341,6 +360,8 @@ Series & Series::setX(cv::InputArray x) {
     if (!impl->xyValid(x)) {
         throw std::invalid_argument("invalid x in Series::setX(). See Series.h for supported types");
     }
+    //TODO: conflict to exists in _rawData from ctor
+    //impl->_rawData.push_back(x.getMat());
     impl->_x = Internal::toVector<double>(x);
     impl->update();
     return *this;
@@ -356,6 +377,8 @@ Series & Series::setY(cv::InputArray y) {
     if (!impl->xyValid(y)) {
         throw std::invalid_argument("invalid y in Series::setY(). See Series.h for supported types");
     }
+    //TODO: conflict to exists in _rawData from ctor
+    //impl->_rawData.push_back(y.getMat());
     impl->_y = Internal::toVector<double>(y);
     impl->update();
     return *this;
@@ -372,6 +395,8 @@ Series & Series::setPoints(cv::InputArray points){
         throw std::invalid_argument("invalid points in Series::setPoints(). See Series.h for supported types");
     }
     cv::Mat p = points.getMat();
+    //TODO: conflict to exists in _rawData from ctor
+    //impl->_rawData.push_back(p);
     if (p.empty()) {
         impl->_x.clear();
         impl->_y.clear();
