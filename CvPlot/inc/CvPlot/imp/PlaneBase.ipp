@@ -3,14 +3,14 @@
 
 #pragma once
 
-#include <CvPlot/drawables/LineBase.h>
+#include <CvPlot/drawables/PlaneBase.h>
 #include <CvPlot/Internal/util.h>
 #include <opencv2/opencv.hpp>
 #include <limits>
 
 namespace CvPlot {
 
-class LineBase::Impl {
+class PlaneBase::Impl {
 public:
     LineType _lineType = LineType::None;
     cv::Scalar _color = cv::Scalar(255, 0, 0);
@@ -18,25 +18,25 @@ public:
 };
 
 CVPLOT_DEFINE_FUN
-LineBase::~LineBase() {
+PlaneBase::~PlaneBase() {
 }
 
 CVPLOT_DEFINE_FUN
-LineBase::LineBase(const std::string &lineSpec) {
+PlaneBase::PlaneBase(const std::string &lineSpec) {
     setLineSpec(lineSpec);
 }
 
 CVPLOT_DEFINE_FUN
-void LineBase::render(RenderTarget & renderTarget){
+void PlaneBase::render(RenderTarget & renderTarget){
 }
 
 CVPLOT_DEFINE_FUN
-bool LineBase::getBoundingRect(cv::Rect2d &rect) {
+bool PlaneBase::getBoundingRect(cv::Rect2d &rect) {
     return false;
 }
 
 CVPLOT_DEFINE_FUN
-LineBase& LineBase::setLineSpec(const std::string &lineSpec) {
+PlaneBase& PlaneBase::setLineSpec(const std::string &lineSpec) {
     if (lineSpec.find_first_of('-') != std::string::npos) {
         setLineType(LineType::Solid);
     }else if (lineSpec.find_first_of('p') != std::string::npos) { //DEBUG: add type for 2d colormap
@@ -63,35 +63,35 @@ LineBase& LineBase::setLineSpec(const std::string &lineSpec) {
 }
 
 CVPLOT_DEFINE_FUN
-LineBase& LineBase::setLineType(LineType lineType){
+PlaneBase& PlaneBase::setLineType(LineType lineType){
     impl->_lineType = lineType;
     return *this;
 }
 
 CVPLOT_DEFINE_FUN
-LineBase& LineBase::setColor(cv::Scalar color) {
+PlaneBase& PlaneBase::setColor(cv::Scalar color) {
     impl->_color = color;
     return *this;
 }
 
 CVPLOT_DEFINE_FUN
-LineBase& LineBase::setLineWidth(int lineWidth){
+PlaneBase& PlaneBase::setLineWidth(int lineWidth){
     impl->_lineWidth = lineWidth;
     return *this;
 }
 
 CVPLOT_DEFINE_FUN
-LineType LineBase::getLineType(){
+LineType PlaneBase::getLineType(){
     return impl->_lineType;
 }
 
 CVPLOT_DEFINE_FUN
-cv::Scalar LineBase::getColor(){
+cv::Scalar PlaneBase::getColor(){
     return impl->_color;
 }
 
 CVPLOT_DEFINE_FUN
-int LineBase::getLineWidth(){
+int PlaneBase::getLineWidth(){
     return impl->_lineWidth;
 }
 

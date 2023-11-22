@@ -14,15 +14,21 @@ namespace CvPlot {
 
 class CVPLOT_LIBRARY_INTERFACE Series : public LineBaseSub<Series> {
 public:
-    Series(const std::string &lineSpec = "-");
+    //DEBUG: i want the named drawable item
+    Series(const std::string &lineSpec = "-", const std::string name = "");
     
     //data: see setY() and setPoints()
-    Series(cv::InputArray data, const std::string &lineSpec = "-");
+    Series(cv::InputArray data, const std::string& lineSpec = "-", const std::string name = "");
 
     //x,y: see setX()
-    Series(cv::InputArray x, cv::InputArray y, const std::string &lineSpec="-");
+    Series(cv::InputArray x, cv::InputArray y, const std::string &lineSpec="-", const std::string name = "");
 
     ~Series();
+    
+    //DEBUG: for drawable dequeu to find named drawable item 
+    void setName(std::string name);
+    std::string getName();
+
     void render(RenderTarget &renderTarget)override;
     bool getBoundingRect(cv::Rect2d &rect)override;
 
@@ -44,6 +50,9 @@ public:
     Series& setPoints(cv::InputArray points);
     std::vector<cv::Point2d> getPoints();
     
+    //DEBUG: plane data mat's rows for y, cols for x, let render() can draw rectangle correctly
+    Series& setPlaneMat(cv::InputArray data);
+
     Series& setLineSpec(const std::string &lineSpec);
     Series& setMarkerType(MarkerType markerType);
     MarkerType getMarkerType();

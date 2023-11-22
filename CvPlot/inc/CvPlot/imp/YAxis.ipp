@@ -19,6 +19,7 @@ public:
     std::vector<double> _ticks;
     bool _isLogarithmic;
     int _width = 0;
+    bool _enable = true;
 
     void calcTicks(const RenderTarget & renderTarget) {
         cv::Rect innerRect = renderTarget.innerRect();
@@ -32,9 +33,11 @@ public:
         if (y1 < y0) {
             std::swap(y0, y1);
         }
+        //TODO: label text should fit the ticks instead of ticks fit the label text
         int labelHeight = getTextSize("1,2").height;
         int spacing = 20;
         int estimatedTickCount = (int)std::ceil(innerRect.height / (labelHeight + spacing));
+        //int estimatedTickCount = (int)std::ceil(innerRect.height / 30.f);
         double epsilon = 1e-5;
         _isLogarithmic = std::abs(2 * (y05 - y0) / (y1 - y0) - 1) > epsilon;
         if (_isLogarithmic) {
@@ -48,6 +51,9 @@ public:
         return cv::getTextSize(text, _fontFace, _fontScale, _fontThickness, &baseline);
     }
     void render(RenderTarget & renderTarget) {
+        if (!_enable) {
+            return;
+        }
         cv::Mat3b &outerMat = renderTarget.outerMat();
         const cv::Rect &innerRect = renderTarget.innerRect();
         if (!innerRect.area()) {
@@ -102,6 +108,11 @@ YAxis::YAxis(){
 CVPLOT_DEFINE_FUN
 void YAxis::render(RenderTarget & renderTarget){
     impl->render(renderTarget);
+}
+
+CVPLOT_DEFINE_FUN
+void YAxis::setEnabled(bool enable) {
+    impl->_enable = enable;
 }
 
 CVPLOT_DEFINE_FUN

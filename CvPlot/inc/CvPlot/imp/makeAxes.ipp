@@ -68,4 +68,20 @@ Axes plotImage(const cv::Mat &mat, const cv::Rect2d &position) {
     return axes;
 }
 
+//DEBUG: new 2d plane chart
+CVPLOT_DEFINE_FUN
+Axes makePlaneAxes() {
+    Axes axes;
+    axes.create<Border>();
+    return axes;
+}
+
+CVPLOT_DEFINE_FUN
+Axes plane(cv::InputArray data, const std::string& lineSpec, std::string name = "") {
+    Axes axes;
+    axes.create<Border>();
+    axes.create<Series>(data, lineSpec, name);
+    return axes;
+}
+
 }

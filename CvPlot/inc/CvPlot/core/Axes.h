@@ -30,7 +30,9 @@ public:
     Axes& yLabel(const std::string &label);
     Axes& title(const std::string &title);
     Axes& enableHorizontalGrid(bool enable = true);
+    Axes& enableYAxisTicks(bool enable = true);
     Axes& enableVerticalGrid(bool enable = true);
+    Axes& enableXAxisTicks(bool enable = true);
 
     Axes& setXLim(std::pair<double, double> xlim);
     std::pair<double, double> getXLim()const;

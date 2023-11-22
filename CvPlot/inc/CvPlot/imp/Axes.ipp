@@ -342,11 +342,27 @@ Axes & Axes::enableHorizontalGrid(bool enable) {
 }
 
 CVPLOT_DEFINE_FUN
+Axes& Axes::enableYAxisTicks(bool enable) {
+    auto axis = find<YAxis>();
+    if (axis)
+        axis->setEnabled(enable);
+    return *this;
+}
+
+CVPLOT_DEFINE_FUN
 Axes & Axes::enableVerticalGrid(bool enable) {
     auto &grid = findOrCreate<VerticalGrid>().setEnabled(enable);
     if (enable) {
         grid.setXAxis(find<XAxis>());
     }
+    return *this;
+}
+
+CVPLOT_DEFINE_FUN
+Axes& Axes::enableXAxisTicks(bool enable) {
+    auto axis = find<XAxis>();
+    if (axis)
+        axis->setEnabled(enable);
     return *this;
 }
 
