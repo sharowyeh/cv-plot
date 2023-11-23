@@ -10,7 +10,9 @@ namespace CvPlot {
 enum class MarkerType {
     None,
     Circle,
-    Point
+    Point,
+    Cross,
+    Plus
 };
 
 }

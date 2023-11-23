@@ -112,6 +112,43 @@ public:
                 }
             }
         }
+        if (_markerType == MarkerType::Cross) {
+            if (shiftedPoints.empty()) {
+                shiftedPoints = getShiftedPoints(points, shiftScale);
+            }
+            const double hypotenuse = (_markerSize * shiftScale) / 2.f;
+            const double side = std::sqrt(std::pow(hypotenuse, 2) / 2.f);
+            for (const auto &group: shiftedPoints ) {
+                for (const auto &point : group) {
+                    cv::line(mat, 
+                        cv::Point(point.x - side, point.y - side), 
+                        cv::Point(point.x + side, point.y + side), 
+                        color, lineWidth, cv::LINE_AA, shift);
+                    cv::line(mat, 
+                        cv::Point(point.x + side, point.y - side), 
+                        cv::Point(point.x - side, point.y + side), 
+                        color, lineWidth, cv::LINE_AA, shift);
+                }
+            }
+        }
+        if (_markerType == MarkerType::Plus) {
+            if (shiftedPoints.empty()) {
+                shiftedPoints = getShiftedPoints(points, shiftScale);
+            }
+            const double side = (_markerSize * shiftScale) / 2.f;
+            for (const auto &group: shiftedPoints ) {
+                for (const auto &point : group) {
+                    cv::line(mat, 
+                        cv::Point(point.x - side, point.y), 
+                        cv::Point(point.x + side, point.y), 
+                        color, lineWidth, cv::LINE_AA, shift);
+                    cv::line(mat, 
+                        cv::Point(point.x, point.y - side), 
+                        cv::Point(point.x, point.y + side), 
+                        color, lineWidth, cv::LINE_AA, shift);
+                }
+            }
+        }
     }
     std::vector<cv::Point2d> getPoints() {
         std::vector<cv::Point2d> points;
@@ -174,6 +211,10 @@ Series& Series::setLineSpec(const std::string &lineSpec) {
         setMarkerType(MarkerType::Circle);
     }else if (lineSpec.find_first_of('.') != std::string::npos) {
         setMarkerType(MarkerType::Point);
+    }else if (lineSpec.find_first_of('x') != std::string::npos) {
+        setMarkerType(MarkerType::Cross);
+    }else if (lineSpec.find_first_of('+') != std::string::npos) {
+        setMarkerType(MarkerType::Plus);
     }else{
         setMarkerType(MarkerType::None);
     }
