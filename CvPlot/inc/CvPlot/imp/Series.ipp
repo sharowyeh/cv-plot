@@ -103,22 +103,67 @@ public:
             printf("rows:%d, cols:%d, height:%d, width:%d\n", m.rows, m.cols, height, width);
             double maxval, minval;
             cv::minMaxIdx(m, &minval, &maxval);
-            printf("minval: %.2f, maxval: %.2f\n", minval, maxval);
+            double factor = 255.0 / (maxval - minval);
+            double added = -255.0 * minval / (maxval - minval);
+            printf("minval: %.2f, maxval: %.2f, factor: %.2f, added: %.2f\n", minval, maxval, factor, added);
             cv::Mat colorMap = cv::Mat(m.rows, m.cols, CV_8UC1);
-            m.convertTo(colorMap, CV_8UC1, 255.0 / (maxval - minval), -255.0 * minval / (maxval - minval));
-            cv::Mat colorBar(m.rows, m.cols, CV_8UC3);
-            cv::cvtColor(colorMap, colorBar, cv::COLOR_GRAY2BGR, 3);
-            cv::imshow("tmp", colorBar);
-            cv::applyColorMap(colorBar, colorBar, cv::COLORMAP_PLASMA);
-            cv::imshow("bar", colorBar);
-            cv::waitKey();
-            //TODO: find min max for color gradients
-            //TODO: color bar
-            //test draw separate line on mat
-            for (int i = 1; i <= width; i++) {
-                cv::line(mat, cv::Point2i(mat.cols / width * i, 0), cv::Point2i(mat.cols / width * i, mat.rows), color, lineWidth, cv::LINE_AA);
-                cv::line(mat, cv::Point2i(0, mat.rows / width * i), cv::Point2i(mat.cols, mat.rows / width * i), color, lineWidth, cv::LINE_AA);
+            m.convertTo(colorMap, CV_8UC1, factor, added);
+            // apply ROIs to display mat
+            for (int r = 0; r < colorMap.rows; r++) {
+                for (int c = 0; c < colorMap.cols; c++) {
+                    auto roi = mat(cv::Rect(c * width, r * height, width, height));
+                    auto val = colorMap.at<uchar>(r, c);
+                    roi.setTo(cv::Scalar(val, val, val));
+                }
             }
+            cv::applyColorMap(mat, mat, cv::COLORMAP_PLASMA);
+
+            auto maxMap = maxval * factor + added;
+            auto minMap = minval * factor + added;
+            cv::Mat colorBar = cv::Mat(mat.rows, 20, CV_8UC3);
+            for (int r = 0; r < mat.rows; r++) {
+                auto val = (maxMap - minMap) / mat.rows * r;
+                // high to low
+                colorBar(cv::Rect(0, mat.rows - r - 1, 20, 1)).setTo(cv::Scalar(val, val, val));
+            }
+            // render color bar likes YAxis.ipp
+            cv::Mat3b& outerMat = renderTarget.outerMat();
+            const cv::Rect& innerRect = renderTarget.innerRect();
+            //TODO: default left margin has 80, so default place on left side?
+            if (innerRect.x > 40) {
+                cv::Rect barRect((innerRect.x - 20) / 2, innerRect.y, 20, mat.rows);
+                // apply color map and copy to outer mat
+                cv::applyColorMap(colorBar, outerMat(barRect), cv::COLORMAP_PLASMA);
+            }
+            else {
+                printf("left margin is not enough to draw color bar\n");
+            }
+            //TODO: need ticks
+
+            // draw grid of the ROIs
+            for (int i = 1; i < cv::max(colorMap.rows, colorMap.cols); i++) {
+                // dash line like
+                if (i < colorMap.rows) {
+                    for (int j = 4; j < mat.cols - 4; j += 8) {
+                        cv::line(mat, cv::Point(j, i * height), cv::Point(j + 4, i * height), cv::Scalar::all(200), lineWidth);
+                    }
+                    //cv::line(mat, cv::Point(0, i * height), cv::Point(mat.cols, i * height), cv::Scalar::all(200), lineWidth);
+                }
+                if (i < colorMap.cols) {
+                    for (int j = 4; j < mat.rows - 4; j += 8) {
+                        cv::line(mat, cv::Point(i * width, j), cv::Point(i * width, j + 4), cv::Scalar::all(200), lineWidth);
+                    }
+                    //cv::line(mat, cv::Point(i * width, 0), cv::Point(i * width, mat.rows), cv::Scalar::all(200), lineWidth);
+                }
+            }
+            //cv::imshow("mat", mat);
+            //cv::Mat colorBar(m.rows, m.cols, CV_8UC3);
+            //cv::cvtColor(colorMap, colorBar, cv::COLOR_GRAY2BGR, 3);
+            //cv::imshow("tmp", colorBar);
+            //cv::applyColorMap(colorBar, colorBar, cv::COLORMAP_PLASMA);
+            //cv::imshow("bar", colorBar);
+            //cv::waitKey();
+            
             return;
         }
         if (_parent.getLineType() == LineType::Solid) {
