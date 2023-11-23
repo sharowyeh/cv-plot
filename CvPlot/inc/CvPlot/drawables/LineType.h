@@ -9,7 +9,8 @@ namespace CvPlot {
 
 enum class LineType {
     None,
-    Solid
+    Solid,
+    Plane
 };
 
 }

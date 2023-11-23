@@ -43,7 +43,11 @@ public:
     // - cv::Mat 1-channel (2xN)
     Series& setPoints(cv::InputArray points);
     std::vector<cv::Point2d> getPoints();
-    
+        
+    //EXPR: plane data mat's rows for y, cols for x, let render() can prepare inner mat correctly, 
+    //      otherwise given desire x and y if given data is vector
+    Series& setPlaneMat(cv::InputArray data);
+
     Series& setLineSpec(const std::string &lineSpec);
     Series& setMarkerType(MarkerType markerType);
     MarkerType getMarkerType();

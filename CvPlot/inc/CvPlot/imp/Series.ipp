@@ -20,6 +20,14 @@ public:
     MarkerType _markerType = MarkerType::None;
     int _markerSize = 10;
     cv::Rect2d _boundingRect;
+    //EXPR: _rawData should be use for plane chart, maybe better design a new class for the 2d chart
+    std::vector<cv::Mat> _rawData;
+    //EXPR: planeValid to check plane chart data, mat rows and cols larger than 1 and line type is plane
+    bool planeValid(cv::InputArray a, const std::string lineSpec) {
+        cv::Mat m = a.getMat();
+        return lineSpec.find('p') != std::string::npos &&
+            (m.empty() || (m.channels() == 1 && m.rows >= 1 && m.cols >= 1));
+    }
 
     bool xyValid(cv::InputArray a) {
         cv::Mat m = a.getMat();
@@ -68,6 +76,72 @@ public:
         return groups;
     }
 
+    //EXPR: rendering function for plane data to color map
+    //TODO: need scale available, and color bar ticks
+    void renderPlaneColorMap(RenderTarget & renderTarget) {
+        auto m = _rawData.back();
+        cv::Mat3b& mat = renderTarget.innerMat();
+        const int lineWidth = _parent.getLineWidth();
+        auto height = mat.rows / m.rows;
+        auto width = mat.cols / m.cols;
+        printf("rows:%d, cols:%d, height:%d, width:%d\n", m.rows, m.cols, height, width);
+        double maxval, minval;
+        cv::minMaxIdx(m, &minval, &maxval);
+        double factor = 255.0 / (maxval - minval);
+        double added = -255.0 * minval / (maxval - minval);
+        printf("minval: %.2f, maxval: %.2f, factor: %.2f, added: %.2f\n", minval, maxval, factor, added);
+        cv::Mat colorMap = cv::Mat(m.rows, m.cols, CV_8UC1);
+        m.convertTo(colorMap, CV_8UC1, factor, added);
+        // apply ROIs to display mat
+        for (int r = 0; r < colorMap.rows; r++) {
+            for (int c = 0; c < colorMap.cols; c++) {
+                auto roi = mat(cv::Rect(c * width, r * height, width, height));
+                auto val = colorMap.at<uchar>(r, c);
+                roi.setTo(cv::Scalar(val, val, val));
+            }
+        }
+        cv::applyColorMap(mat, mat, cv::COLORMAP_PLASMA);
+
+        auto maxMap = maxval * factor + added;
+        auto minMap = minval * factor + added;
+        cv::Mat colorBar = cv::Mat(mat.rows, 20, CV_8UC3);
+        for (int r = 0; r < mat.rows; r++) {
+            auto val = (maxMap - minMap) / mat.rows * r;
+            // high to low
+            colorBar(cv::Rect(0, mat.rows - r - 1, 20, 1)).setTo(cv::Scalar(val, val, val));
+        }
+        // render color bar likes YAxis.ipp
+        cv::Mat3b& outerMat = renderTarget.outerMat();
+        const cv::Rect& innerRect = renderTarget.innerRect();
+        //TODO: default left margin has 80, so default place on left side?
+        if (innerRect.x > 40) {
+            cv::Rect barRect((innerRect.x - 20) / 2, innerRect.y, 20, mat.rows);
+            // apply color map and copy to outer mat
+            cv::applyColorMap(colorBar, outerMat(barRect), cv::COLORMAP_PLASMA);
+        }
+        else {
+            printf("left margin is not enough to draw color bar\n");
+        }
+        //TODO: need ticks
+
+        // draw grid of the ROIs
+        for (int i = 1; i < cv::max(colorMap.rows, colorMap.cols); i++) {
+            // dash line like
+            if (i < colorMap.rows) {
+                for (int j = 4; j < mat.cols - 4; j += 8) {
+                    cv::line(mat, cv::Point(j, i * height), cv::Point(j + 4, i * height), cv::Scalar::all(200), lineWidth);
+                }
+                //cv::line(mat, cv::Point(0, i * height), cv::Point(mat.cols, i * height), cv::Scalar::all(200), lineWidth);
+            }
+            if (i < colorMap.cols) {
+                for (int j = 4; j < mat.rows - 4; j += 8) {
+                    cv::line(mat, cv::Point(i * width, j), cv::Point(i * width, j + 4), cv::Scalar::all(200), lineWidth);
+                }
+                //cv::line(mat, cv::Point(i * width, 0), cv::Point(i * width, mat.rows), cv::Scalar::all(200), lineWidth);
+            }
+        }
+    }
+
     void render(RenderTarget & renderTarget) {
         if (_internalX.empty()) {
             return;
@@ -86,6 +160,11 @@ public:
             points.push_back(renderTarget.project(cv::Point2d(_internalX[i], _y[i])));
         }
         std::vector<std::vector<cv::Point>> shiftedPoints;
+        //EXPR: use _rawData instead of x,y axis
+        if (_parent.getLineType() == LineType::Plane && _rawData.size() > 0) {
+            renderPlaneColorMap(renderTarget);
+            return;
+        }
         if (_parent.getLineType() == LineType::Solid) {
             if (shiftedPoints.empty()) {
                 shiftedPoints = getShiftedPoints(points, shiftScale);
@@ -178,6 +257,11 @@ Series::Series(cv::InputArray data, const std::string &lineSpec)
         setY(data);
     }else if(impl->pointsValid(data)){
         setPoints(data);
+    }
+    //EXPR: try to identify given plane mat data and corresponding type
+    else if (impl->planeValid(data, lineSpec)) {
+        impl->_rawData.push_back(d);
+        setPlaneMat(d);
     }else {
         throw std::invalid_argument("invalid data in Series constructor. See Series.h for supported types");
     }
@@ -301,6 +385,30 @@ Series & Series::setPoints(cv::InputArray points){
         impl->_y = Internal::toVector<double>(p.row(1));
     }
     impl->update();
+    return *this;
+}
+
+CVPLOT_DEFINE_FUN
+Series& Series::setPlaneMat(cv::InputArray data) {
+    cv::Mat m = data.getMat();
+    std::vector<double> x, y;
+    //EXPR: same counting for _internalX
+    int c = m.cols;
+    int r = m.rows;
+    // find lcf and gcd of c and r
+    int gcd = 0;
+    while (r != 0) {
+        gcd = r;
+        r = c % r;
+        c = gcd;
+    }
+    int lcf = m.cols * m.rows / gcd;
+    for (int i = 1; i <= lcf; i++) {
+        x.push_back((double)i / lcf * m.cols);
+        y.push_back((double)i / lcf * m.rows);
+    }
+    setX(x);
+    setY(y);
     return *this;
 }
 

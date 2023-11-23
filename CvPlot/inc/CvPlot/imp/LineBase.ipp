@@ -39,6 +39,8 @@ CVPLOT_DEFINE_FUN
 LineBase& LineBase::setLineSpec(const std::string &lineSpec) {
     if (lineSpec.find_first_of('-') != std::string::npos) {
         setLineType(LineType::Solid);
+    }else if (lineSpec.find_first_of('p') != std::string::npos) { //EXPR: resolve plane type by `p`
+        setLineType(LineType::Plane);
     }else{
         setLineType(LineType::None);
     }
